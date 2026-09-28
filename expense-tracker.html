@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Little Ledger — Expense Tracker</title>
+  <style>
+    :root { color-scheme: light; --ink:#20271f; --muted:#747b70; --paper:#f6f5ef; --card:#fffefa; --line:#e9e8df; --green:#3567a8; --green-light:#e7f0e8; --coral:#d87c62; }
+    * { box-sizing:border-box }
+    body { margin:0; background:var(--paper); color:var(--ink); font:15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+    button,input,select { font:inherit }
+    .shell { width:min(1060px, calc(100% - 36px)); margin:42px auto 64px }
+    header { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:32px }
+    .brand { display:flex; align-items:center; gap:12px }
+    .mark { width:42px;height:42px;display:grid;place-items:center;border-radius:14px;background:var(--green);color:white;font-size:22px }
+    h1 { margin:0;font-size:22px;letter-spacing:-.5px }
+    .subtitle { margin:3px 0 0;color:var(--muted);font-size:13px }
+    .month-label { padding:9px 14px;border:1px solid var(--line);border-radius:999px;background:var(--card);font-size:13px;color:var(--muted) }
+    .summary { display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:14px;margin-bottom:18px }
+    .card { background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px }
+    .summary .card:first-child { background:var(--green);color:white;border-color:var(--green) }
+    .label { color:var(--muted);font-size:12px;font-weight:650;letter-spacing:.04em;text-transform:uppercase }
+    .summary .card:first-child .label { color:#dce9df }
+    .amount { margin-top:8px;font-size:30px;font-weight:700;letter-spacing:-1px }
+    .small-note { margin-top:4px;color:var(--muted);font-size:12px }
+    .summary .card:first-child .small-note { color:#dce9df }
+    .layout { display:grid;grid-template-columns:330px 1fr;gap:18px;align-items:start }
+    h2 { margin:0 0 16px;font-size:16px;letter-spacing:-.2px }
+    .form-card,.list-card { padding:22px }
+    .field { display:block;margin:0 0 14px }
+    .field span { display:block;margin-bottom:6px;font-size:12px;font-weight:650;color:#52594f }
+    input,select { width:100%;height:42px;padding:0 12px;border:1px solid #dedfd6;border-radius:10px;background:white;color:var(--ink);outline:none }
+    input:focus,select:focus { border-color:#71947c;box-shadow:0 0 0 3px #e8f0e9 }
+    .form-row { display:grid;grid-template-columns:1fr 1fr;gap:10px }
+    .primary { width:100%;height:44px;border:0;border-radius:11px;background:var(--green);color:white;font-weight:650;cursor:pointer;transition:transform .12s,background .12s }
+    .primary:hover { background:#254b38;transform:translateY(-1px) }
+    .list-head { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px }
+    .list-head h2 { margin:0 }
+    .filter { width:auto;min-width:145px;height:36px;font-size:12px }
+    .entries { display:grid;gap:8px }
+    .entry { display:grid;grid-template-columns:42px 1fr auto auto;gap:12px;align-items:center;padding:11px 4px;border-bottom:1px solid #f0efe8 }
+    .entry:last-child { border-bottom:0 }
+    .category-icon { width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:var(--green-light);font-size:18px }
+    .entry-title { font-weight:650;font-size:14px }
+    .entry-meta { margin-top:2px;color:var(--muted);font-size:12px }
+    .entry-amount { white-space:nowrap;font-weight:700;font-size:14px }
+    .delete { width:30px;height:30px;border:0;border-radius:9px;background:transparent;color:#959b91;font-size:18px;cursor:pointer }
+    .delete:hover { background:#fff0ed;color:#b34f3b }
+    .empty { padding:36px 12px;text-align:center;color:var(--muted);font-size:13px }
+    .empty strong { display:block;margin-bottom:5px;color:var(--ink);font-size:14px }
+    .footnote { margin-top:15px;color:var(--muted);font-size:11px;text-align:center }
+    @media (max-width:760px) { .shell{margin-top:24px}.summary{grid-template-columns:1fr 1fr}.summary .card:first-child{grid-column:1/-1}.layout{grid-template-columns:1fr}.month-label{display:none} }
+    @media (max-width:430px) { .shell{width:calc(100% - 24px)}.summary{gap:8px}.card{padding:16px}.amount{font-size:24px}.form-card,.list-card{padding:17px}.entry{grid-template-columns:38px 1fr auto auto;gap:8px}.category-icon{width:36px;height:36px} }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="brand"><div class="mark" aria-hidden="true">↗</div><div><h1>Little Ledger</h1><p class="subtitle">A calmer way to keep track of spending.</p></div></div>
+      <div class="month-label" id="monthLabel"></div>
+    </header>
+
+    <section class="summary" aria-label="Spending summary">
+      <article class="card"><div class="label">Spent this month</div><div class="amount" id="monthTotal">$0.00</div><div class="small-note" id="monthCount">No expenses yet</div></article>
+      <article class="card"><div class="label">Today</div><div class="amount" id="todayTotal">$0.00</div><div class="small-note">Your spending today</div></article>
+      <article class="card"><div class="label">All time</div><div class="amount" id="allTotal">$0.00</div><div class="small-note" id="allCount">0 entries</div></article>
+    </section>
+
+    <section class="layout">
+      <form class="card form-card" id="expenseForm">
+        <h2>Add an expense</h2>
+        <label class="field"><span>What was it for?</span><input id="description" name="description" placeholder="e.g. Lunch with friends" maxlength="60" required></label>
+        <div class="form-row">
+          <label class="field"><span>Amount (SGD)</span><input id="amount" name="amount" type="number" min="0.01" max="999999" step="0.01" placeholder="0.00" required></label>
+          <label class="field"><span>Date</span><input id="date" name="date" type="date" required></label>
+        </div>
+        <label class="field"><span>Category</span><select id="category" name="category"><option>Food</option><option>Transport</option><option>Shopping</option><option>Bills</option><option>Health</option><option>Fun</option><option>Other</option></select></label>
+        <button class="primary" type="submit">Add expense <span aria-hidden="true">＋</span></button>
+      </form>
+
+      <section class="card list-card" aria-labelledby="historyTitle">
+        <div class="list-head"><h2 id="historyTitle">Recent expenses</h2><select class="filter" id="filter" aria-label="Filter expenses by category"><option value="All">All categories</option><option>Food</option><option>Transport</option><option>Shopping</option><option>Bills</option><option>Health</option><option>Fun</option><option>Other</option></select></div>
+        <div class="entries" id="entries" aria-live="polite"></div>
+      </section>
+    </section>
+    <p class="footnote">Your entries are saved in this browser on this device.</p>
+  </main>
+
+  <script>
+    // A small lookup table lets us show a friendly symbol for each category.
+    const icons = { Food: "🥑", Transport: "🚲", Shopping: "🛍️", Bills: "🧾", Health: "🌿", Fun: "☀️", Other: "✦" };
+    const storageKey = "little-ledger-expenses-v1";
+
+    // localStorage belongs to this browser. JSON turns our list into text for saving,
+    // and JSON.parse turns that text back into JavaScript data when the page opens.
+    let expenses = JSON.parse(localStorage.getItem(storageKey) || "[]");
+
+    const form = document.querySelector("#expenseForm");
+    const dateInput = document.querySelector("#date");
+    const filter = document.querySelector("#filter");
+    const entries = document.querySelector("#entries");
+    const today = new Date();
+    const todayString = toLocalDateString(today);
+    dateInput.value = todayString;
+    document.querySelector("#monthLabel").textContent = today.toLocaleDateString("en-SG", { month: "long", year: "numeric" });
+
+    function toLocalDateString(date) {
+      // Build YYYY-MM-DD using local time (toISOString would use UTC).
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function money(value) {
+      return new Intl.NumberFormat("en-SG", { style: "currency", currency: "SGD" }).format(value);
+    }
+
+    function saveExpenses() {
+      localStorage.setItem(storageKey, JSON.stringify(expenses));
+    }
+
+    function render() {
+      // Every time data changes, calculate totals and redraw the list from the same source.
+      const thisMonth = todayString.slice(0, 7);
+      const monthExpenses = expenses.filter(item => item.date.startsWith(thisMonth));
+      const todayExpenses = expenses.filter(item => item.date === todayString);
+      const total = list => list.reduce((sum, item) => sum + item.amount, 0);
+
+      document.querySelector("#monthTotal").textContent = money(total(monthExpenses));
+      document.querySelector("#todayTotal").textContent = money(total(todayExpenses));
+      document.querySelector("#allTotal").textContent = money(total(expenses));
+      document.querySelector("#monthCount").textContent = `${monthExpenses.length} expense${monthExpenses.length === 1 ? "" : "s"} this month`;
+      document.querySelector("#allCount").textContent = `${expenses.length} entr${expenses.length === 1 ? "y" : "ies"}`;
+
+      const visible = expenses
+        .filter(item => filter.value === "All" || item.category === filter.value)
+        .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
+
+      if (visible.length === 0) {
+        entries.innerHTML = `<div class="empty"><strong>${expenses.length ? "No expenses in this category" : "Nothing here yet"}</strong>${expenses.length ? "Choose another category to see more." : "Add your first expense using the form."}</div>`;
+        return;
+      }
+
+      // The user-entered description is inserted as text, not interpreted as HTML.
+      entries.replaceChildren(...visible.map(item => {
+        const row = document.createElement("article");
+        row.className = "entry";
+        const icon = document.createElement("div"); icon.className = "category-icon"; icon.textContent = icons[item.category] || icons.Other;
+        const details = document.createElement("div");
+        const title = document.createElement("div"); title.className = "entry-title"; title.textContent = item.description;
+        const meta = document.createElement("div"); meta.className = "entry-meta"; meta.textContent = `${item.category} · ${new Date(`${item.date}T12:00:00`).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" })}`;
+        details.append(title, meta);
+        const amount = document.createElement("div"); amount.className = "entry-amount"; amount.textContent = money(item.amount);
+        const remove = document.createElement("button"); remove.className = "delete"; remove.type = "button"; remove.textContent = "×"; remove.setAttribute("aria-label", `Delete ${item.description}`); remove.addEventListener("click", () => deleteExpense(item.id));
+        row.append(icon, details, amount, remove);
+        return row;
+      }));
+    }
+
+    function deleteExpense(id) {
+      expenses = expenses.filter(item => item.id !== id);
+      saveExpenses();
+      render();
+    }
+
+    form.addEventListener("submit", event => {
+      // Prevent the browser's default form submission, which would reload the page.
+      event.preventDefault();
+      const expense = {
+        id: crypto.randomUUID(),
+        description: document.querySelector("#description").value.trim(),
+        amount: Number(document.querySelector("#amount").value),
+        date: dateInput.value,
+        category: document.querySelector("#category").value,
+        createdAt: Date.now()
+      };
+      if (!expense.description || !Number.isFinite(expense.amount) || expense.amount <= 0 || !expense.date) return;
+      expenses.push(expense);
+      saveExpenses();
+      form.reset();
+      dateInput.value = todayString;
+      render();
+      document.querySelector("#description").focus();
+    });
+
+    filter.addEventListener("change", render);
+    render();
+  </script>
+</body>
+</html>
